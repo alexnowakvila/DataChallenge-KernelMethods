@@ -50,18 +50,18 @@ def read_data(path_data, dataset=0):
     Dataset["Ytr"] = X
   return Dataset
 
-def compute_accuracy(X, y, w):
-  X = X.transpose()
-  acc = 0
-  for i in range(X.shape[0]):
-    if np.dot(X[i], w) >= 0 and y[i] == 1:
-      acc += 1
-    elif np.dot(X[i], w) < 0 and y[i] == -1:
-      acc += 1
-    else:
-      pass
-  acc /= X.shape[0]
-  return acc
+class KernelLinear():
+    def __init__(self, dim=10):
+      self.d = dim
+
+    def kernel_matrix(self, X1, X2):
+      # X has size (d x n)
+      K = np.dot(X1.T, X2)
+      return K
+
+    def kernel(self, x, y):
+      Kxy = np.dot(x.T, y)
+      return Kxy
 
 
 if __name__ == "__main__":

@@ -6,171 +6,264 @@ import pdb
 from utils import *
 import matplotlib.pyplot as plt
 
-def phi(x, t, Q, p, A, b):
-  phi_1 = t*(0.5*np.dot(np.dot(x.transpose(), Q), x) + np.dot(p.transpose(), x))
-  dif = b - np.dot(A, x)
-  barrier = -1 * np.sum(np.log(dif))
-  phi = phi_1 + barrier
-  return phi
+class QP_solver(object):
+  def __init__(self, Q, p, A, b, x_0, mu, tol, t0=1., LS=False):
+    self.Q = Q
+    self.p = p
+    self.A = A
+    self.b = b
+    self.x_0 = x_0
+    self.mu = mu
+    self.tol = tol
+    self.t0 = t0
+    self.LS = LS
 
-def grad(x, t, Q, p, A, b):
-  grad_phi_1 = t*(np.dot(Q,x) + p)
-  dif = b - np.dot(A, x)
-  grad_barrier = np.sum(A / np.expand_dims(dif, 1), axis=0)
-  return grad_phi_1 + grad_barrier
+  def phi(self, x, t):
+    phi_1 = (t*(0.5*np.dot(np.dot(x.transpose(), self.Q), x)
+             + np.dot(self.p.transpose(), x)))
+    dif = self.b - np.dot(self.A, x)
+    barrier = -1 * np.sum(np.log(dif))
+    phi = phi_1 + barrier
+    return phi
 
-def hess(x, t, Q, p, A, b):
-  hess_phi_1 = t * Q
-  dif = b - np.dot(A, x)
-  A_1 = A / np.expand_dims(dif, 1)
-  hess_barrier = np.dot(A_1.transpose(), A_1)
-  return hess_phi_1 + hess_barrier
+  def grad(self, x, t):
+    grad_phi_1 = t*(np.dot(self.Q,x) + self.p)
+    dif = self.b - np.dot(self.A, x)
+    grad_barrier = np.sum(self.A / np.expand_dims(dif, 1), axis=0)
+    return grad_phi_1 + grad_barrier
 
-def dampedNewtonStep(x, f, g, h):
-  fx, gx, hx = f(x), g(x), h(x)
-  hx_inv = np.linalg.inv(hx)
-  lambd = np.sqrt(np.dot(np.dot(gx.transpose(), hx_inv), gx))
-  lr = 1./((1 + lambd))
-  # F1, F2 = [],[]
-  # T = np.arange(-1, 1, 0.001)
-  # for t in list(T):
-  #   F1.append(f(x - t*np.dot(hx_inv, gx)))
-  #   F2.append( (f(x) - t*lambd**2) )
-  # plt.plot(list(T), F1, 'r')
-  # plt.plot(list(T), F2, 'b')
-  # plt.show()
-  xnew = x - lr*np.dot(hx_inv, gx)
-  gap = 0.5*lambd*lambd
-  return xnew, gap
+  def hess(self, x, t):
+    hess_phi_1 = t * self.Q
+    dif = self.b - np.dot(self.A, x)
+    A_1 = self.A / np.expand_dims(dif, 1)
+    hess_barrier = np.dot(A_1.transpose(), A_1)
+    return hess_phi_1 + hess_barrier
 
-def dampedNewton(x0, f, g, h, tol, LS=False):
-  max_tol = (3 - np.sqrt(5))/2
-  try:
-    assert tol < max_tol
-  except:
-    raise ValueError('tolerance must be smaller than {}'.format(max_tol))
-  # compute first step
-  xnew, gap = dampedNewtonStep(x0, f, g, h)
-  xhist = [xnew]
-  while gap > tol:
-    if LS:
-      xnew, gap = LSNewtonStep(xnew, f, g, h)
-    else:
-      xnew, gap = dampedNewtonStep(xnew, f, g, h)
-    xhist.append(xnew)
-  xstar = xnew
-  return xstar, xhist
+  def dampedNewtonStep(self, x, f, g, h):
+    fx, gx, hx = f(x), g(x), h(x)
+    hx_inv = np.linalg.inv(hx)
+    lambd = np.sqrt(np.dot(np.dot(gx.transpose(), hx_inv), gx))
+    lr = 1./((1 + lambd))
+    # F1, F2 = [],[]
+    # T = np.arange(-1, 1, 0.001)
+    # for t in list(T):
+    #   F1.append(f(x - t*np.dot(hx_inv, gx)))
+    #   F2.append( (f(x) - t*lambd**2) )
+    # plt.plot(list(T), F1, 'r')
+    # plt.plot(list(T), F2, 'b')
+    # plt.show()
+    xnew = x - lr*np.dot(hx_inv, gx)
+    gap = 0.5*lambd*lambd
+    return xnew, gap
 
-def linesearch(x, deltax, gx, f, g, alpha=0.4, beta=0.9):
-  gx = g(x)
-  d = np.dot(gx.transpose(), deltax)
-  # T = np.arange(-2, 2, 0.001)
-  # F1, F2, F3 = [],[], []
-  # for t in list(T):
-  #   F1.append(f(x + t*deltax))
-  #   F2.append( (f(x) + alpha*t*d) )
-  #   F3.append( (f(x) + t*d) )
-  # plt.plot(list(T), F1, 'r')
-  # plt.plot(list(T), F2, 'b')
-  # plt.plot(list(T), F3, 'k')
-  # plt.show()
-  t = 1
-  i = 0
-  while np.isnan(f(x + t*deltax)) or f(x + t*deltax) > (f(x) + alpha*t*d):
-    t *= beta
-    i += 1
-  return t
+  def dampedNewton(self, x0, f, g, h):
+    max_tol = (3 - np.sqrt(5))/2
+    try:
+      assert self.tol < max_tol
+    except:
+      raise ValueError('tolerance must be smaller than {}'.format(max_tol))
+    # compute first step
+    xnew, gap = self.dampedNewtonStep(x0, f, g, h)
+    xhist = [xnew]
+    while gap > self.tol:
+      if self.LS:
+        xnew, gap = self.LSNewtonStep(xnew, f, g, h)
+      else:
+        xnew, gap = self.dampedNewtonStep(xnew, f, g, h)
+      xhist.append(xnew)
+    xstar = xnew
+    return xstar, xhist
 
-def LSNewtonStep(x, f, g, h):
-  fx, gx, hx = f(x), g(x), h(x)
-  hx_inv = np.linalg.inv(hx)
-  lambd = np.sqrt(np.dot(np.dot(gx.transpose(), hx_inv), gx))
-  deltax = -1 * np.dot(hx_inv, gx)
-  lr = linesearch(x, deltax, gx, f, g)
-  xnew = x + lr*deltax
-  gap = 0.5*lambd*lambd
-  return xnew, gap
+  def linesearch(self, x, deltax, gx, f, g, alpha=0.4, beta=0.9):
+    gx = g(x)
+    d = np.dot(gx.transpose(), deltax)
+    t = 1
+    i = 0
+    while np.isnan(f(x + t*deltax)) or f(x + t*deltax) > (f(x) + alpha*t*d):
+      t *= beta
+      i += 1
+    return t
 
-def transform_svm_primal(tau, X, y):
-  n = y.shape[0]
-  d = X.shape[0]
-  X_y = X * np.expand_dims(y, 0)  # d x n
-  A_1 = np.concatenate((X_y.transpose(), np.eye(n)), axis=1)
-  A_2 = np.concatenate((np.zeros((n, d)), np.eye(n)), axis=1)
-  A = -1 * np.concatenate((A_1, A_2), axis=0)
-  b = -1 * np.concatenate((np.ones((n)), np.zeros((n))), axis=0)
-  Q_1 = np.concatenate((np.eye(d), np.zeros((d, n))), axis=1)
-  Q_2 = np.zeros((n, d + n))
-  Q = np.concatenate((Q_1, Q_2), axis=0)
-  p = np.concatenate((np.zeros((d)), (1/(tau*n)) * np.ones((n))), axis=0)
-  return Q, p, A, b
+  def LSNewtonStep(self, x, f, g, h):
+    fx, gx, hx = f(x), g(x), h(x)
+    hx_inv = np.linalg.inv(hx)
+    lambd = np.sqrt(np.dot(np.dot(gx.transpose(), hx_inv), gx))
+    deltax = -1 * np.dot(hx_inv, gx)
+    lr = self.linesearch(x, deltax, gx, f, g)
+    xnew = x + lr*deltax
+    gap = 0.5*lambd*lambd
+    return xnew, gap
 
-def transform_svm_dual(tau, X, y):
-  n = y.shape[0]
-  X_y = X * np.expand_dims(y, 0)  # d x n
-  Q = np.dot(X_y.transpose(), X_y) 
-  p = -1*np.ones((n))
-  A = np.concatenate((np.eye(n), -1*np.eye(n)), axis=0)
-  ones_n = np.ones((n))
-  b = np.concatenate(((1/(tau*n))* ones_n, np.zeros((n))), axis=0)
-  return Q, p, A, b
+  def barr_method(self):
+    t = self.t0
+    m = self.A.shape[0]
+    x0 = self.x_0
+    xhist = [x0]
+    barriers = []
+    while m/t > self.tol:
+      f = lambda x: self.phi(x, t)
+      g = lambda x: self.grad(x, t)
+      h = lambda x: self.hess(x, t)
+      xstar, xhist_dn = self.dampedNewton(x0, f, g, h)
+      xhist.extend(xhist_dn)
+      barriers.extend([x0 for i in xhist_dn])
+      x0 = xstar
+      t *= self.mu
+    x_sol = xstar
+    return x_sol, xhist, barriers
 
-def barr_method(Q, p, A, b, x_0, mu, tol, t0=1.2, LS=False):
-  t = t0
-  m = A.shape[0]
-  x0 = x_0
-  xhist = [x0]
-  barriers = []
-  while m/t > tol:
-    f = lambda x: phi(x, t, Q, p, A, b)
-    g = lambda x: grad(x, t, Q, p, A, b)
-    h = lambda x: hess(x, t, Q, p, A, b)
-    xstar, xhist_dn = dampedNewton(x0, f, g, h, tol, LS=LS)
-    xhist.extend(xhist_dn)
-    barriers.extend([x0 for i in xhist_dn])
-    x0 = xstar
-    t *= mu
-  x_sol = xstar
-  return x_sol, xhist, barriers
-
-def svm_solver(tau, X, Y, t0, mu, tol, LS= False,
-               model='primal', solver="mine"):
-  n = X.shape[1]
-  d = X.shape[0]
-  if model == 'primal':
-    Q, p, A, b = transform_svm_primal(tau, X, Y)
-    x_0 = 10 * np.ones((d + n))
-    x_0[:d] = 0
-  elif model == 'dual':
-    Q, p, A, b = transform_svm_dual(tau, X, Y)
-    x_0 = (1/(2*tau*n))*np.ones((n))
-  else:
-    raise ValueError('Must correctly specify the model (primal/dual)')
-  if solver == "mine":
-    x_sol, xhist, barriers = barr_method(Q, p, A, b, x_0,
-                                         mu, tol, t0=t0, LS=LS)
-    f = (lambda x: 0.5*np.dot(np.dot(x.transpose(), Q), x) + 
-       np.dot(p.transpose(), x))
-    fhist = np.array([f(x) for x in xhist])
-    fhist_b = np.array([f(x) for x in barriers])
-  elif solver == "cvxopt":
-    Q, p, A, b = matrix(Q), matrix(p), matrix(A), matrix(b)
+  def cvxopt_solver(self):
+    Q, p, A, b = matrix(self.Q), matrix(self.p), matrix(self.A), matrix(self.b)
     solution = cvxopt.solvers.qp(Q, p, A, b)
     x_sol = np.array(solution['x'])[:,0]
-    xhist = []
-    barriers = []
-    fhist = []
-    fhist_b = []
-  if model == 'primal':
-    # the hyperplane is explicit on the variables
-    w = x_sol[:d]
-  elif model == 'dual':
-    # we can recover the hyperplane with a simple linear combination
-    # w = \sum_{i=1}^m\lambda_iy_ix_i
-    w = np.sum(X * np.expand_dims(x_sol, 0) * np.expand_dims(Y, 0), axis=1)
-  acc = compute_accuracy(X, Y, w)
-  return x_sol, xhist, fhist, fhist_b, w, acc
+    return x_sol
 
+
+###############################################################################
+#  Euclidean-SVM
+###############################################################################
+
+
+class Euclidean_SVM(QP_solver):
+  def __init__(self, tau, X, y, dual=True):
+    self.n = X.shape[1]
+    self.d = X.shape[0]
+    self.X = X
+    self.y = y
+    self.dual = dual
+    mu = 3.
+    tol = 1e-1
+    LS = True
+    if dual:
+      Q, p, A, b = self.transform_svm_dual(tau, X, y)
+      x_0 = (1/(2*tau*self.n))*np.ones((self.n))
+    elif not dual:
+      Q, p, A, b = self.transform_svm_primal(tau, X, y)
+      x_0 = 10 * np.ones((self.d + self.n))
+      x_0[:self.d] = 0
+    QP_solver.__init__(self, Q, p, A, b, x_0, mu, tol, t0=1.2, LS=True)
+
+  def transform_svm_primal(self, tau, X, y):
+    X_y = X * np.expand_dims(y, 0)  # d x n
+    A_1 = np.concatenate((X_y.transpose(), np.eye(self.n)), axis=1)
+    A_2 = np.concatenate((np.zeros((self.n, self.d)), np.eye(self.n)), axis=1)
+    A = -1 * np.concatenate((A_1, A_2), axis=0)
+    b = -1 * np.concatenate((np.ones((self.n)), np.zeros((self.n))), axis=0)
+    Q_1 = np.concatenate((np.eye(self.d), np.zeros((self.d, self.n))), axis=1)
+    Q_2 = np.zeros((self.n, self.d + self.n))
+    Q = np.concatenate((Q_1, Q_2), axis=0)
+    p = (np.concatenate((np.zeros((self.d)), (1/(tau*self.n)) *
+         np.ones((self.n))), axis=0))
+    return Q, p, A, b
+
+  def transform_svm_dual(self, tau, X, y):
+    self.n = y.shape[0]
+    X_y = X * np.expand_dims(y, 0)  # d x n
+    Q = np.dot(X_y.transpose(), X_y) 
+    p = -1*np.ones((self.n))
+    A = np.concatenate((np.eye(self.n), -1*np.eye(self.n)), axis=0)
+    ones_n = np.ones((self.n))
+    b = np.concatenate(((1/(tau*self.n))* ones_n, np.zeros((self.n))), axis=0)
+    return Q, p, A, b
+
+  def svm_solver(self, solver="mine"):
+    if solver == "mine":
+      x_sol, _, _ = self.barr_method()
+    elif solver == "cvxopt":
+      x_sol = self.cvxopt_solver()
+    if not self.dual:
+      # the hyperplane is explicit on the variables
+      w = x_sol[:self.d]
+    elif self.dual:
+      # we can recover the hyperplane with a simple linear combination
+      # w = \sum_{i=1}^m\lambda_iy_ix_i
+      w = (np.sum(self.X * np.expand_dims(x_sol, 0) *
+           np.expand_dims(self.y, 0), axis=1))
+    acc = self.compute_accuracy(self.X, self.y, w)
+    return x_sol, w, acc
+
+  def compute_accuracy(self, X, y, w):
+    X = X.transpose()
+    acc = 0
+    for i in range(X.shape[0]):
+      if np.dot(X[i], w) >= 0 and y[i] == 1:
+        acc += 1
+      elif np.dot(X[i], w) < 0 and y[i] == -1:
+        acc += 1
+      else:
+        pass
+    acc /= X.shape[0]
+    return acc
+
+
+###############################################################################
+#  Kernel-SVM
+###############################################################################
+
+
+class kernel_SVM(QP_solver):
+  def __init__(self, tau, X, y, Kernel, dual=True):
+    self.n = X.shape[1]
+    self.d = X.shape[0]
+    self.X = X
+    self.y = y
+    self.dual = dual
+    self.Kernel = Kernel
+    mu = 3.
+    tol = 1e-1
+    LS = True
+    if dual:
+      Q, p, A, b = self.transform_svm_dual(tau, X, y)
+      x_0 = (1/(2*tau*self.n))*np.ones((self.n))
+    elif not dual:
+      Q, p, A, b = self.transform_svm_primal(tau, X, y)
+      x_0 = 10 * np.ones((2*self.n))
+      x_0[:self.n] = 0
+    QP_solver.__init__(self, Q, p, A, b, x_0, mu, tol, t0=1.2, LS=True)
+
+  def transform_svm_primal(self, tau, X, y):
+    K = self.Kernel.kernel_matrix(X, X)
+    K_y = K * np.expand_dims(y, 0)  # n x n
+    A_1 = np.concatenate((K_y.T, np.eye(self.n)), axis=1)
+    A_2 = np.concatenate((np.zeros((self.n, self.n)), np.eye(self.n)), axis=1)
+    A = -1 * np.concatenate((A_1, A_2), axis=0)
+    b = -1 * np.concatenate((np.ones((self.n)), np.zeros((self.n))), axis=0)
+    Q_1 = np.concatenate((2 * K, np.zeros((self.n, self.n))), axis=1)
+    Q_2 = np.zeros((self.n, self.n + self.n))
+    Q = np.concatenate((Q_1, Q_2), axis=0)
+    p = (np.concatenate((np.zeros((self.n)), (1/(tau*self.n)) *
+         np.ones((self.n))), axis=0))
+    pdb.set_trace()
+    return Q, p, A, b
+
+  def transform_svm_dual(self, tau, X, y):
+    K = self.Kernel.kernel_matrix(X, X)
+    Q = np.dot(np.expand_dims(y,1), np.expand_dims(y,0)) * K
+    p = -1*np.ones((self.n))
+    A = np.concatenate((np.eye(self.n), -1*np.eye(self.n)), axis=0)
+    ones_n = np.ones((self.n))
+    b = np.concatenate(((1/(tau*self.n))* ones_n, np.zeros((self.n))), axis=0)
+    return Q, p, A, b
+
+  def svm_solver(self, solver="mine"):
+    if solver == "mine":
+      x_sol, _, _ = self.barr_method()
+    elif solver == "cvxopt":
+      x_sol = self.cvxopt_solver()
+    if not self.dual:
+      alpha = x_sol[:self.n]
+    elif self.dual:
+      lambd = x_sol
+      alpha = lambd * self.y  # pointwise product
+    acc = self.compute_accuracy(self.X, self.y, alpha)
+    return x_sol, alpha, acc
+
+  def compute_accuracy(self, X, y, alpha):
+    K = self.Kernel.kernel_matrix(self.X, X)  # has size (n1 x n2)
+    y_pred = np.dot(K.T, alpha)
+    correct = ((y * y_pred) >= 0)
+    acc = np.mean(correct)
+    return acc
 
 if __name__ == '__main__':
   path = '/home/alexnowak/Documents/MVA/ConvexOptimization/CO_HWK3/Data/'

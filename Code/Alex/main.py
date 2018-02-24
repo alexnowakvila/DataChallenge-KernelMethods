@@ -35,51 +35,60 @@ d = X_train.shape[0]
 
 # barrier method parameters
 t0 = 1.
-mu = 3
-tol = 1e-3
+mu = 3.
+tol = 1e-1
 LS= True
+svm_primal = Euclidean_SVM(tau, X_train, Y_train, dual=False)
+svm_dual = Euclidean_SVM(tau, X_train, Y_train, dual=True)
+
+# #############################################################################
+# #  primal no-kernel
+# #############################################################################
+
+
+# x_sol, w, acc_train = svm_primal.svm_solver(solver=solver)
+# acc_test = svm_primal.compute_accuracy(X_test, Y_test, w)
+# print('acc_train', acc_train)
+# print('acc_test', acc_test)
+# print('PRIMAL OPTIMIZATION FINISHED')
+
+# #############################################################################
+# #  dual no-kernel
+# #############################################################################
+
+# x_sol, w, acc_train = svm_dual.svm_solver(solver=solver)
+# acc_test = svm_dual.compute_accuracy(X_test, Y_test, w)
+# print('acc_train', acc_train)
+# print('acc_test', acc_test)
+# print('DUAL OPTIMIZATION FINISHED')
+
+###############################################################################
+#  Kernels
+###############################################################################
+
+Kernel = KernelLinear(dim=X_train.shape[0])
+svm_primal = kernel_SVM(tau, X_train, Y_train, Kernel, dual=False)
+svm_dual = kernel_SVM(tau, X_train, Y_train, Kernel, dual=True)
 
 #############################################################################
-#  primal
+#  primal with kernel
 #############################################################################
 
-out = svm_solver(tau, X_train, Y_train, t0, mu, tol,
-                 LS=LS, model='primal', solver=solver)
-x_sol, xhist, fhist, fhist_b, w, acc_train = out
-acc_test = compute_accuracy(X_test, Y_test, w)
-print('acc_train', acc_train)
-print('acc_test', acc_test)
-print('PRIMAL OPTIMIZATION FINISHED')
-if solver == 'mine':
-  plt.semilogy(fhist)
-  plt.semilogy(fhist_b, '--')
-  plt.title('Primal $t_0$={}, $\mu$={}'.format(t0, mu))
-  plt.xlabel('iterations')
-  plt.show()
-  print('PRIMAL RESULT: {:0.10f}'.format(fhist[-1]))
-  primal_seq = fhist
+# x_sol, alpha, acc_train = svm_primal.svm_solver(solver=solver)
+# acc_test = svm_primal.compute_accuracy(X_test, Y_test, alpha)
+# print('acc_train', acc_train)
+# print('acc_test', acc_test)
+# print('PRIMAL OPTIMIZATION FINISHED')
 
 #############################################################################
-#  dual
+#  dual with kernel
 #############################################################################
 
-out = svm_solver(tau, X_train, Y_train, t0, mu, tol,
-                 LS=LS, model='dual', solver=solver)
-x_sol, xhist, fhist, fhist_b, w, acc_train = out
-acc_test = compute_accuracy(X_test, Y_test, w)
+x_sol, alpha, acc_train = svm_dual.svm_solver(solver=solver)
+acc_test = svm_dual.compute_accuracy(X_test, Y_test, alpha)
 print('acc_train', acc_train)
 print('acc_test', acc_test)
 print('DUAL OPTIMIZATION FINISHED')
-if solver == 'mine':
-  plt.semilogy(-1*fhist)
-  plt.semilogy(-1*fhist_b, '--')
-  plt.title('Dual $t_0$={}, $\mu$={}'.format(t0, mu))
-  plt.xlabel('iterations')
-  plt.show()
-  print('DUAL RESULT: {:0.10f}'.format(-fhist[-1]))
-  dual_seq = fhist
-
-
 
 # #############################################################################
 # #  Try different mu
