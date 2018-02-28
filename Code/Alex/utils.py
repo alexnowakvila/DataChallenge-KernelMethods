@@ -59,39 +59,51 @@ class KernelLinear():
     def __init__(self, dim=10):
       self.d = dim
 
-    def kernel_matrix(self, X1, X2):
+    def kernel_matrix(self, X):
       # X has size (d x n)
-      K = np.dot(X1.T, X2)
+      K = np.dot(X.T, X)
       return K
 
     def kernel(self, x, y):
       Kxy = np.dot(x.T, y)
       return Kxy
 
+    def predict(self, Xtr, Xte, alpha):
+      K = np.dot(Xtr.T, Xte)  # has size (n1 x n2)
+      y_pred = np.dot(K.T, alpha)
+      return y_pred
+
 ###############################################################################
 #  Spectrum Kernel
 ###############################################################################
 
 class KernelSpectrum():
-  def __init__(self, k=3):
+  def __init__(self, k=3, kernel_matrix=None):
     self.k = k
+    if kernel_matrix is not None:
+      self.K = K
+    else:
+      self.K = None
 
   def kernel_matrix(self, X):
-    n = X.shape[1]
-    K = np.zeros((n, n))
-    # diagonal
-    for i in range(n):
-      K[i, i] = self.kernel(X[:, i], X[:, i])
-    # upper diagonal
-    for i in tqdm(range(n), desc="Computing Spectrum Kernel Matrix"):
-      for j in range(i+1, n):
-        K[i, j] = self.kernel(X[:, i], X[:, j])
-        K[j, i] = K[i, j]
-    return K
+    if self.K is None:
+      X = self.preindex_strings(X).T
+      n = X.shape[1]
+      K = np.zeros((n, n))
+      # diagonal
+      for i in range(n):
+        K[i, i] = self.kernel(X[:, i], X[:, i])
+      # upper diagonal
+      for i in tqdm(range(n), desc="Computing Spectrum Kernel Matrix"):
+        for j in range(i+1, n):
+          K[i, j] = self.kernel(X[:, i], X[:, j])
+          K[j, i] = K[i, j]
+      self.K = K
+    return self.K
 
   def kernel(self, x1, x2):
-    n1 = x1.shape[0]
-    n2 = x2.shape[0]
+    n1 = len(x1)
+    n2 = len(x2)
     d = {}
     K = 0
     for i in range(n1):
@@ -103,6 +115,14 @@ class KernelSpectrum():
       if x2[j] in d:
         K += d[x2[j]]
     return K
+
+  def predict(self, Xtr, Xte, alpha):
+    y_pred = []
+    for xte in Xte:
+      fx = sum(alpha * np.array([self.kernel(xtr, xte) for xtr in Xtr]))
+      y_pred.append(fx)
+    y_pred = np.array(y_pred)
+    return y_pred
 
   def preindex_strings(self, X):
     X_num = []
@@ -126,7 +146,7 @@ class KernelSpectrum():
       n = len(x)
       x_num = []
       for j in range(n - self.k + 1):
-        num = string_to_num(x[j:j+k])
+        num = string_to_num(x[j:j+self.k])
         x_num.append(num)
       X_num.append(x_num)
     X_num = np.array(X_num)

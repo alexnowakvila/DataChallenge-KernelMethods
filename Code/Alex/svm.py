@@ -203,8 +203,8 @@ class Euclidean_SVM(QP_solver):
 
 class kernel_SVM(QP_solver):
   def __init__(self, tau, X, y, Kernel, dual=True):
-    self.n = X.shape[1]
-    self.d = X.shape[0]
+    if type(X) is np.ndarray: self.n = X.shape[1]
+    else: self.n = len(X)
     self.X = X
     self.y = y
     self.dual = dual
@@ -222,7 +222,7 @@ class kernel_SVM(QP_solver):
     QP_solver.__init__(self, Q, p, A, b, x_0, mu, tol, t0=1.2, LS=True)
 
   def transform_svm_primal(self, tau, X, y):
-    K = self.Kernel.kernel_matrix(X, X)
+    K = self.Kernel.kernel_matrix(X)
     K_y = K * np.expand_dims(y, 0)  # n x n
     A_1 = np.concatenate((K_y.T, np.eye(self.n)), axis=1)
     A_2 = np.concatenate((np.zeros((self.n, self.n)), np.eye(self.n)), axis=1)
@@ -237,7 +237,7 @@ class kernel_SVM(QP_solver):
     return Q, p, A, b
 
   def transform_svm_dual(self, tau, X, y):
-    K = self.Kernel.kernel_matrix(X, X)
+    K = self.Kernel.kernel_matrix(X)
     Q = np.dot(np.expand_dims(y,1), np.expand_dims(y,0)) * K
     p = -1*np.ones((self.n))
     A = np.concatenate((np.eye(self.n), -1*np.eye(self.n)), axis=0)
@@ -259,8 +259,7 @@ class kernel_SVM(QP_solver):
     return x_sol, alpha, acc
 
   def compute_accuracy(self, X, y, alpha):
-    K = self.Kernel.kernel_matrix(self.X, X)  # has size (n1 x n2)
-    y_pred = np.dot(K.T, alpha)
+    y_pred = self.Kernel.predict(self.X, X, alpha)
     correct = ((y * y_pred) >= 0)
     acc = np.mean(correct)
     return acc
