@@ -1,5 +1,10 @@
 import numpy as np
 from tqdm import tqdm
+import sys
+sys.path.insert(0, '/home/alexnowak/DataChallenge-KernelMethods/Code/Alex/')
+
+from utils import *
+from svm import *
 
 
 class Kernel_Substring():
@@ -22,7 +27,6 @@ class Kernel_Substring():
     
     compute substring kernel distance between x and y
     """
-    
     N = len(x)
     M = len(y)
     grid_B = np.zeros((M, N, k+1))
@@ -96,3 +100,30 @@ class Kernel_Substring():
     y_pred = np.array(y_pred)
 
     return y_pred
+
+
+if __name__ == "__main__":
+  path_data = ("/home/alexnowak/DataChallenge-KernelMethods/"
+               "Data/")
+  Dataset0 = read_data(path_data, dataset=0)
+  Dataset1 = read_data(path_data, dataset=1)
+  Dataset2 = read_data(path_data, dataset=2)
+
+  #############################################################################
+  #  Create Substring Kernel
+  #############################################################################
+
+  dataset = 0
+  k = 1
+  gamma = 0.8
+  path_save_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
+                          "Data/dataset_{}/SubsKernel".format(dataset))
+  Xtr = Dataset0["Xtr_mat50"][:10]
+  Xte = Dataset0["Xtr_mat50"][:10]
+  kernel = Kernel_Substring(k, gamma)
+  # u = kernel.kernel(X_s[:, 0], X_s[:, 1])
+  Ktr = kernel.kernel_matrix(Xtr)
+  Kte = kernel.kernel_matrix(Xte)
+  np.savez(path_save_kernel_mat, Ktr=Ktr, Kte=Kte)
+  print("Saved!")
+  pdb.set_trace()
