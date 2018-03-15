@@ -202,27 +202,24 @@ class Euclidean_SVM(QP_solver):
 
 
 class kernel_SVM(QP_solver):
-  def __init__(self, tau, X, y, Kernel, dual=True):
-    if type(X) is np.ndarray: self.n = X.shape[1]
-    else: self.n = len(X)
-    self.X = X
+  def __init__(self, tau, K, y, dual=True):
+    self.n = K.shape[0]
     self.y = y
     self.dual = dual
-    self.Kernel = Kernel
+    self.K = K
     mu = 3.
     tol = 1e-1
     LS = True
     if dual:
-      Q, p, A, b = self.transform_svm_dual(tau, X, y)
+      Q, p, A, b = self.transform_svm_dual(tau, K, y)
       x_0 = (1/(2*tau*self.n))*np.ones((self.n))
     elif not dual:
-      Q, p, A, b = self.transform_svm_primal(tau, X, y)
+      Q, p, A, b = self.transform_svm_primal(tau, K, y)
       x_0 = 10 * np.ones((2*self.n))
       x_0[:self.n] = 0
     QP_solver.__init__(self, Q, p, A, b, x_0, mu, tol, t0=1.2, LS=True)
 
-  def transform_svm_primal(self, tau, X, y):
-    K = self.Kernel.kernel_matrix(X)
+  def transform_svm_primal(self, tau, K, y):
     K_y = K * np.expand_dims(y, 0)  # n x n
     A_1 = np.concatenate((K_y.T, np.eye(self.n)), axis=1)
     A_2 = np.concatenate((np.zeros((self.n, self.n)), np.eye(self.n)), axis=1)
@@ -236,8 +233,7 @@ class kernel_SVM(QP_solver):
     pdb.set_trace()
     return Q, p, A, b
 
-  def transform_svm_dual(self, tau, X, y):
-    K = self.Kernel.kernel_matrix(X)
+  def transform_svm_dual(self, tau, K, y):
     Q = np.dot(np.expand_dims(y,1), np.expand_dims(y,0)) * K
     p = -1*np.ones((self.n))
     A = np.concatenate((np.eye(self.n), -1*np.eye(self.n)), axis=0)
@@ -255,11 +251,14 @@ class kernel_SVM(QP_solver):
     elif self.dual:
       lambd = x_sol
       alpha = lambd * self.y  # pointwise product
-    acc = self.compute_accuracy(self.X, self.y, alpha)
+    acc = self.compute_accuracy(self.K, self.y, alpha)
     return x_sol, alpha, acc
 
-  def compute_accuracy(self, X, y, alpha):
-    y_pred = self.Kernel.predict(self.X, X, alpha)
+  def compute_accuracy(self, K, y, alpha):
+    # K is a (ntr x nte) matrix
+    y_pred = np.dot(np.expand_dims(alpha, 0), K).T
+    y_pred = y_pred[:, 0]
+    # y_pred = self.Kernel.predict(self.X, X, alpha)
     correct = ((y * y_pred) >= 0)
     acc = np.mean(correct)
     return acc

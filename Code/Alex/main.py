@@ -7,81 +7,114 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from sklearn.model_selection import train_test_split
+from tabulate import tabulate
 
-np.random.seed(2)  # set random seed
-dataset = 0
-# kernel = 'given_features'
-kernel = 'linear'
-# kernel = 'spectrum'
-solver = 'cvxopt'
-# solver = 'mine'
-path_data = ("/home/alexnowak/DataChallenge-KernelMethods/Data/")
-Dataset = read_data(path_data, dataset=dataset)
-# barrier method parameters
-t0 = 1.
-mu = 3.
-tol = 1e-1
-LS= True
-tau = 1e-6
-cut = 1700
-test_size = 0.25
-
-if kernel == 'given_features':
-  X = Dataset["Xtr_mat50"]
-  Y = Dataset["Ytr"]
-  X_train, X_test, Y_train, Y_test = (train_test_split(X, Y, 
-                                      test_size=test_size))
-  X_train, X_test = X_train.T, X_test.T
-  # if data not centered add extra dimension
-  X_train = np.concatenate((X_train, np.ones((1, X_train.shape[1]))), axis=0)
-  X_test = np.concatenate((X_test, np.ones((1, X_test.shape[1]))), axis=0)
-
-  svm_primal = Euclidean_SVM(tau, X_train, Y_train, dual=False)
-  svm_dual = Euclidean_SVM(tau, X_train, Y_train, dual=True)
-
-elif kernel == 'linear':
-  X = Dataset["Xtr_mat50"]
-  Y = Dataset["Ytr"]
-  X_train, X_test, Y_train, Y_test = (train_test_split(X, Y, 
-                                      test_size=test_size))
-  X_train, X_test = X_train.T, X_test.T
-  # if data not centered add extra dimension
-  X_train = np.concatenate((X_train, np.ones((1, X_train.shape[1]))), axis=0)
-  X_test = np.concatenate((X_test, np.ones((1, X_test.shape[1]))), axis=0)
-
-  Kernel = KernelLinear(dim=X_train.shape[0])
-  # svm_primal = kernel_SVM(tau, X_train, Y_train, Kernel, dual=False)
-  svm_dual = kernel_SVM(tau, X_train, Y_train, Kernel, dual=True)
-
-elif kernel == 'spectrum':
-  X = Dataset["Xtr"]
-  Y = Dataset["Ytr"]
-  X_train, X_test, Y_train, Y_test = (train_test_split(X, Y, 
-                                      test_size=test_size))
-  Kernel = KernelSpectrum(k=4)
-  svm_dual = kernel_SVM(tau, X_train, Y_train, Kernel, dual=True)
-
-else:
-  raise ValueError("Kernel {} not implemented".format(kernel))
 
 #############################################################################
-#  dual with kernel
+#  cross validation
 #############################################################################
 
-x_sol, alpha, acc_train = svm_dual.svm_solver(solver=solver)
-acc_test = svm_dual.compute_accuracy(X_test, Y_test, alpha)
-print('acc_train', acc_train)
-print('acc_test', acc_test)
-print('DUAL OPTIMIZATION FINISHED')
+def cross_validate(K, Y, cut, tau, n_partitions=4):
+  # permute
+  n = K.shape[0]
+  # permute data
+  perm = np.random.permutation(n)
+  K = K[perm]
+  K = K[:, perm]
+  Y = Y[perm]
+  assert n % n_partitions == 0
+  cut = int(n - n/n_partitions)
+  perm = np.arange(0, n)
+  Acc_train, Acc_test = [], []
+  for i in range(n_partitions):
+    print("\n ------------- PARTITION NUMBER {} -------------- \n".format(i+1))
+    acc_train, acc_test = run(K, Y, cut, perm, tau)
+    Acc_train.append(acc_train)
+    Acc_test.append(acc_test)
+    # change partition
+    aux = perm[cut:]
+    perm = np.concatenate((aux, perm[:cut]), 0)
+  info = [[i, Acc_train[i], Acc_test[i]] for i in range(n_partitions)]
+  header = ["Partition", "Acc. Train", "Acc. Test"]
+  print("\n", tabulate(info, header))
+  mean_train, mean_test = np.mean(Acc_train), np.mean(Acc_test)
+  print("\n Mean Train: {}, Mean Test: {} \n"
+        .format(mean_train, mean_test))
+  return mean_train, mean_test
+
+def evaluate_taus(K, Y, cut, taus, n_partitions=4, kernel=None):
+  info, header = [], []
+  for tau in taus:
+    print("\n EVALUATING TAU = {}\n".format(tau))
+    acc_tr, acc_te = cross_validate(K, Y, cut, tau, n_partitions=n_partitions)
+    info.append([tau, acc_tr, acc_te])
+  header = ["Tau", "Acc. Train", "Acc. Test"]
+  print("\n Kernel: {} \n".format(kernel))
+  print("\n", tabulate(info, header))
 
 #############################################################################
-#  primal with kernel
+#  train and test
 #############################################################################
 
-# x_sol, alpha, acc_train = svm_primal.svm_solver(solver=solver)
-# acc_test = svm_primal.compute_accuracy(X_test, Y_test, alpha)
-# print('acc_train', acc_train)
-# print('acc_test', acc_test)
-# print('PRIMAL OPTIMIZATION FINISHED')
 
+def run(K, Y, cut, perm, tau):
+  # train test split
+  K_train, K_test, Y_train, Y_test = kernel_train_test_split(K, Y, cut, perm=perm)
+  # solve
+  svm_dual = kernel_SVM(tau, K_train, Y_train, dual=True)
+  x_sol, alpha, acc_train = svm_dual.svm_solver(solver=solver)
+  # test
+  acc_test = svm_dual.compute_accuracy(K_test, Y_test, alpha)
+  return acc_train, acc_test
+
+
+if __name__ == "__main__":
+  np.random.seed(1)  # set random seed
+  dataset = 0
+  # kernel = 'given_features'
+  # kernel = 'linear'
+  kernel = 'spectrum'
+  solver = 'cvxopt'
+  # solver = 'mine'
+  path_data = ("/home/alexnowak/DataChallenge-KernelMethods/Data/")
+  Dataset = read_data(path_data, dataset=dataset)
+  # regularization parameter
+  tau = 1e-7
+  cut = 1500
+  test_size = 0.33
+  # choose kernel
+  if kernel == 'linear':
+    X = Dataset["Xtr_mat50"].T
+    Y = Dataset["Ytr"]
+    Kernel = KernelLinear(dim=X.shape[0])
+    K = Kernel.kernel_matrix(X)
+  elif kernel == 'spectrum':
+    X = Dataset["Xtr"]
+    Y = Dataset["Ytr"]
+    k = 4
+    path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
+                            "Data/dataset_{}/SpecKernel_k{}.npz"
+                            .format(dataset, k))
+    K = np.load(path_load_kernel_mat)["Ktr"]
+  else:
+    raise ValueError("Kernel {} not implemented".format(kernel))
+  # normalize
+  K = normalize(K)
+
+  #########################################################################
+  #  simple run
+  #########################################################################
+
+  # perm = np.random.permutation(K.shape[0])
+  # acc_train, acc_test = run(K, Y, cut, perm, tau)
+  # print('\n acc_train ', acc_train)
+  # print('\n acc_test', acc_test)
+
+  #########################################################################
+  #  cross validate
+  #########################################################################
+
+  taus = [1e-2, 1e-4, 1e-6, 1e-8]
+  n_partitions = 4
+  evaluate_taus(K, Y, cut, taus, n_partitions=4, kernel=kernel)
 
