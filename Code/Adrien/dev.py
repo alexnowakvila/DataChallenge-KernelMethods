@@ -30,6 +30,7 @@ class Kernel_Substring():
     N = len(x)
     M = len(y)
     grid_B = np.zeros((M, N, k+1))
+    grid_B[:, :, 0] += np.ones((M, N))
     grid_K = np.zeros((M, N, k+1))
     
     for p in range(1, k+1):
@@ -64,7 +65,7 @@ class Kernel_Substring():
                             sum_K += grid_B[n-1, j-1, p-1]
                     
                     grid_B[i, j, p] = gamma * grid_B[i, j-1, p] + sum_B
-                    grid_K[i, j, p] = gamma * grid_K[i, j-1, p] + (gamma ** 2) * sum_K
+                    grid_K[i, j, p] = grid_K[i, j-1, p] + (gamma ** 2) * sum_K
     
     return grid_K[M-1, N-1, k]
 
