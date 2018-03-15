@@ -3,6 +3,7 @@ import pdb
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from scipy.special import comb
 
 n_datasets = 3
 
@@ -170,7 +171,9 @@ class KernelMismatch():
   def __init__(self, k=4, m=1, kernel_matrix=None):
     self.k = k
     self.m = m
+    self.t = min(2*m, k)
     self.trad = {"A": 0, "C": 1, "G": 2, "T": 3}
+    self.l = len(self.trad)
     if kernel_matrix is not None:
       self.K = K
     else:
@@ -225,6 +228,82 @@ class KernelMismatch():
       self.K = K
     return self.K
 
+  ##############################################
+  #  Efficient implementation from Farhan et al.
+  ##############################################
+
+  def compute_nij(self, i, j, d):
+    nij = 0
+    for t in range(i+j-d/2):
+      a1 = comb(2*d-i-j+2*t, d-(i-t))
+      a2 = comb(d, i+j-2*t-d)
+      a3 = np.power(self.l-2, i+j-2*t-d)
+      a4 = comb(k-d, t)
+      a5 = np.power(self.l-1, t)
+      nij += a1 * a2 * a3 * a4 * a5
+    return nij
+
+  def compute_I(self):
+    I = []
+    for d in range(self.k):
+      # compute the size of the intersection when
+      Nd = 0
+      for i in range(self.m):
+        for j in range(self.m):
+          Nd += self.compute_nij(i, j, d)
+      I.append(Nd)
+    return I
+
+  def sort_enumerate(self, x1_kmers, x2_kmers, theta):
+    """ This routine first orders the k-mers of x1 and x2 lexicographically
+    and then enumerates the pairs in Sx x Sy that coincide at the indices
+    given by theta with a linear pass """
+    nX = len(x1_kmers)
+    # first extract the coordinates corresponding to theta and sort
+    x1_theta = [x1_kmers[r, theta] for r in range(nX)].sort()
+    x2_theta = [x2_kmers[r, theta] for r in range(nX)].sort()
+    # do a linear scan to find the k-mers that coincide in theta
+    f_theta = 0
+    t1, t2 = 0, 0
+    while (t1 < nX) and (t2 < nX):
+      if x1_theta[t1] < x2_theta[t2]:
+        t1 += 1
+      elif x1_theta[t1] > x2_theta[t2]:
+        t2 += 1
+      else:
+        # they are equal
+        f_theta += 1
+    return f_theta
+
+  def online_variance(self, muF, varF, f_theta, it):
+    varF = (varF * (it-1) + f_theta**2) / it - muF**2
+    return varF
+
+  def kernel_efficient(self, x1, x2, sigma=0.5, B=200):
+    n = len(x1)
+    assert n == len(x2)
+    I = self.compute_I()
+    M = []
+    # construct Sx and Sy
+    x1_kmers = [''.join(x1[r:r+self.k]) for r in range(n-self.k)]
+    x2_kmers = [''.join(x2[r:r+self.k]) for r in range(n-self.k)]
+    for i in range(self.t):
+      muF = 0
+      it = 1
+      varF = 1e6
+      while (varF > sigma**2) and (it < B):
+        theta = np.random.permutation(self.k)[:(k-i)]
+        f_theta = self.sort_enumerate(x1_kmers, x2_kmers, theta)
+        muF = (muF * (it-1) + f_theta) / it
+        varF = self.online_variance(muF, varF, f_theta, it)
+        it += 1
+      F_i = muF * comb(self.k, self.k-i)
+      M.append(F_i)
+      for j in range(i-1):
+        M[i] = M[i] - comb(self.k-j, self.k-i) * M[j]
+    # sum-product
+    K = sum([M[r]*I[r] for r in range(self.t)])
+    return K
 
 
 if __name__ == "__main__":
@@ -276,16 +355,16 @@ if __name__ == "__main__":
   #  Create Mismatch Kernel
   #############################################################################
   
-  k = 3
+  k = 8
   m = 1
   kernel = KernelMismatch(k=k, m=m)
   dataset = 0
   path_save_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
                           "Data/dataset_{}/MismKernel_k{}_m{}"
                           .format(dataset, k, m))
-  Xtr = Dataset0["Xtr"]
-  Xte = Dataset0["Xte"]
-  kernel2 = KernelSpectrum(k=k)
+  Xtr = Dataset0["Xtr"][:10]
+  Xte = Dataset0["Xte"][:10]
+  # kernel2 = KernelSpectrum(k=k)
   # x1, x2 = Xtr[0][:10], Xtr[1][:10]
   # x1 = ['C', 'G', 'G']
   # x2 = ['C', 'A', 'T']
@@ -296,6 +375,6 @@ if __name__ == "__main__":
   # pdb.set_trace()
   Ktr = kernel.kernel_matrix(Xtr)
   Kte = kernel.kernel_matrix(Xte)
-  np.savez(path_save_kernel_mat, Ktr=Ktr, Kte=Kte)
+  # np.savez(path_save_kernel_mat, Ktr=Ktr, Kte=Kte)
   print("Saved!")
   pdb.set_trace()

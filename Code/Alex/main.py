@@ -70,10 +70,10 @@ def run(K, Y, cut, perm, tau):
 
 if __name__ == "__main__":
   np.random.seed(1)  # set random seed
-  dataset = 0
+  dataset = 2
   # kernel = 'given_features'
-  # kernel = 'linear'
-  kernel = 'spectrum'
+  kernel = 'linear'
+  # kernel = 'spectrum'
   solver = 'cvxopt'
   # solver = 'mine'
   path_data = ("/home/alexnowak/DataChallenge-KernelMethods/Data/")
