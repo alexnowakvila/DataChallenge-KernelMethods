@@ -23,3 +23,6 @@ Two days after the deadline of the data challenge, you will have to provide
 **For this reason, the use of external machine learning libraries is forbidden. For instance, this includes, but is not limited to, libsvm, liblinear, scikit-learn, ...**
 
 On the other hand, you are welcome to use general purpose libraries, such as library for linear algebra (e.g., svd, eigenvalue decompositions), optimization libraries (e.g., for solving linear or quadratic programs)
+
+## References
+- [Efficient Approximation Algorithms for String Kernel Based Sequence Classification](https://papers.nips.cc/paper/7269-efficient-approximation-algorithms-for-strings-kernel-based-sequence-classification.pdf)
