@@ -202,7 +202,7 @@ class Euclidean_SVM(QP_solver):
 
 
 class kernel_SVM(QP_solver):
-  def __init__(self, tau, K, y, dual=True):
+  def __init__(self, tau, K, y, dual=True, squared=False):
     self.n = K.shape[0]
     self.y = y
     self.dual = dual
@@ -211,13 +211,20 @@ class kernel_SVM(QP_solver):
     tol = 1e-1
     LS = True
     if dual:
-      Q, p, A, b = self.transform_svm_dual(tau, K, y)
+      if squared:
+        Q, p, A, b = self.transform_squared_svm_dual(tau, K, y)
+      else:
+        Q, p, A, b = self.transform_svm_dual(tau, K, y)
       x_0 = (1/(2*tau*self.n))*np.ones((self.n))
     elif not dual:
       Q, p, A, b = self.transform_svm_primal(tau, K, y)
       x_0 = 10 * np.ones((2*self.n))
       x_0[:self.n] = 0
     QP_solver.__init__(self, Q, p, A, b, x_0, mu, tol, t0=1.2, LS=True)
+
+  ##############################################
+  #  Hinge Loss
+  ##############################################
 
   def transform_svm_primal(self, tau, K, y):
     K_y = K * np.expand_dims(y, 0)  # n x n
@@ -239,6 +246,18 @@ class kernel_SVM(QP_solver):
     A = np.concatenate((np.eye(self.n), -1*np.eye(self.n)), axis=0)
     ones_n = np.ones((self.n))
     b = np.concatenate(((1/(tau*self.n))* ones_n, np.zeros((self.n))), axis=0)
+    return Q, p, A, b
+
+  ##############################################
+  #  Squared Hinge Loss
+  ##############################################
+
+  def transform_squared_svm_dual(self, tau, K, y):
+    Q = np.dot(np.expand_dims(y,1), np.expand_dims(y,0))
+    Q = Q * (K + self.n * tau * np.eye(self.n))
+    p = -1*np.ones((self.n))
+    A = -1*np.eye(self.n)
+    b = np.zeros((self.n))
     return Q, p, A, b
 
   def svm_solver(self, solver="mine"):

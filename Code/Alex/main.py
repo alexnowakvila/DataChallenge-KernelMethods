@@ -61,7 +61,7 @@ def run(K, Y, cut, perm, tau):
   # train test split
   K_train, K_test, Y_train, Y_test = kernel_train_test_split(K, Y, cut, perm=perm)
   # solve
-  svm_dual = kernel_SVM(tau, K_train, Y_train, dual=True)
+  svm_dual = kernel_SVM(tau, K_train, Y_train, dual=True, squared=squared)
   x_sol, alpha, acc_train = svm_dual.svm_solver(solver=solver)
   # test
   acc_test = svm_dual.compute_accuracy(K_test, Y_test, alpha)
@@ -70,10 +70,11 @@ def run(K, Y, cut, perm, tau):
 
 if __name__ == "__main__":
   np.random.seed(1)  # set random seed
-  dataset = 2
+  dataset = 0
   # kernel = 'given_features'
-  kernel = 'linear'
+  # kernel = 'linear'
   # kernel = 'spectrum'
+  kernel = 'mismatch'
   solver = 'cvxopt'
   # solver = 'mine'
   path_data = ("/home/alexnowak/DataChallenge-KernelMethods/Data/")
@@ -82,6 +83,7 @@ if __name__ == "__main__":
   tau = 1e-7
   cut = 1500
   test_size = 0.33
+  squared = True
   # choose kernel
   if kernel == 'linear':
     X = Dataset["Xtr_mat50"].T
@@ -95,6 +97,15 @@ if __name__ == "__main__":
     path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
                             "Data/dataset_{}/SpecKernel_k{}.npz"
                             .format(dataset, k))
+    K = np.load(path_load_kernel_mat)["Ktr"]
+  elif kernel == 'mismatch':
+    X = Dataset["Xtr"]
+    Y = Dataset["Ytr"]
+    k = 8
+    m = 2
+    path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
+                            "Data/dataset_{}/MismKernel_k{}_m{}.npz"
+                            .format(dataset, k, m))
     K = np.load(path_load_kernel_mat)["Ktr"]
   else:
     raise ValueError("Kernel {} not implemented".format(kernel))
@@ -114,7 +125,7 @@ if __name__ == "__main__":
   #  cross validate
   #########################################################################
 
-  taus = [1e-2, 1e-4, 1e-6, 1e-8]
+  taus = [100., 1., 0.01, 1e-10]
   n_partitions = 4
-  evaluate_taus(K, Y, cut, taus, n_partitions=4, kernel=kernel)
+  evaluate_taus(K, Y, cut, taus, n_partitions=n_partitions, kernel=kernel)
 
