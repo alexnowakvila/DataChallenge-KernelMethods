@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from utils import *
-from svm import *
+from svm2 import *
 import argparse
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -61,8 +61,8 @@ def run_train(K, Y, cut, perm, tau):
   # train test split
   K_train, K_test, Y_train, Y_test = kernel_train_test_split(K, Y, cut, perm=perm)
   # solve
-  svm_dual = kernel_SVM(tau, K_train, Y_train, dual=True, squared=squared)
-  x_sol, alpha, acc_train = svm_dual.svm_solver(solver=solver)
+  svm_dual = kernel_SVM(tau, K_train, Y_train, squared=squared)
+  alpha, acc_train = svm_dual.svm_solver()
   # test
   if cut < K.shape[0]:
     acc_test = svm_dual.compute_accuracy(K_test, Y_test)
@@ -72,14 +72,12 @@ def run_train(K, Y, cut, perm, tau):
 
 
 if __name__ == "__main__":
-  np.random.seed(2)  # set random seed
+  np.random.seed(1)  # set random seed
   dataset = 0
   # kernel = 'given_features'
   # kernel = 'linear'
   # kernel = 'spectrum'
   kernel = 'mismatch'
-  solver = 'cvxopt'
-  # solver = 'mine'
   path_data = ("/home/alexnowak/DataChallenge-KernelMethods/Data/")
   Dataset = read_data(path_data, dataset=dataset)
   # regularization parameter
@@ -87,7 +85,7 @@ if __name__ == "__main__":
   cut = 1500
   test_size = 0.33
   squared = True
-  submit = True
+  submit = False
   # choose kernel
   if kernel == 'linear':
     X = Dataset["Xtr_mat50"].T
@@ -105,18 +103,38 @@ if __name__ == "__main__":
   elif kernel == 'mismatch':
     X = Dataset["Xtr"]
     Y = Dataset["Ytr"]
-    k = 6
-    m = 1
+    ks = [1, 2, 4, 6, 8, 10]
+    ms = [0, 0, 1, 1, 1, 1]
+    # ms = np.zeros((10))
+    # weights = np.ones((10))
+    weights = [.1, .1, .1, .1, 1., .1]
+    weights = np.array(weights)/len(weights)
+    for i, par in enumerate(zip(ks, ms, weights)):
+      print(par)
+      if submit:
+        path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
+                                "Data/dataset_{}/MismKernel_k{}_m{}_all.npz"
+                                .format(dataset, par[0], par[1]))
+      else:
+        path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
+                                "Data/dataset_{}/MismKernel_k{}_m{}.npz"
+                                .format(dataset, par[0], par[1]))
+      if i > 0:
+        K = K + par[2] * np.load(path_load_kernel_mat)["Ktr"]
+      else:
+        K = par[2] * np.load(path_load_kernel_mat)["Ktr"]
+    # add shape kernel
+    weight_shape = .0001
+    # weight_shape = .000001
     if submit:
       path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
-                              "Data/dataset_{}/MismKernel_k{}_m{}_all.npz"
-                              .format(dataset, k, m))
-      K = np.load(path_load_kernel_mat)["Ktr"]
+                              "Data/dataset_{}/ShapeKernel_all.npz"
+                              .format(dataset))
     else:
       path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
-                              "Data/dataset_{}/MismKernel_k{}_m{}.npz"
-                              .format(dataset, k, m))
-      K = np.load(path_load_kernel_mat)["Ktr"]
+                              "Data/dataset_{}/ShapeKernel.npz"
+                              .format(dataset))
+    K = K + weight_shape * np.load(path_load_kernel_mat)["Ktr"]
   else:
     raise ValueError("Kernel {} not implemented".format(kernel))
   # normalize
@@ -141,13 +159,13 @@ if __name__ == "__main__":
     #########################################################################
 
     cut = 2000  # means that we do not validate in any other set
-    tau = 1e-6
+    tau = 0.3
     perm = None
     acc_train, acc_test, svm_dual = run_train(K, Y, cut, perm, tau)
     prediction = svm_dual.predict(K_test)
     path_submission = ("/home/alexnowak/DataChallenge-KernelMethods/"
                        "Data/dataset_{}/submission.npz".format(dataset))
-    info = {"tau:": tau, "kernel": kernel, "k": k, "m": m}
+    info = {"tau:": tau, "kernel": kernel, "k": ks, "m": ms, "w": weights}
     np.savez(path_submission, Y=prediction, info=info)
     print("Submission saved.")
   else:
@@ -155,6 +173,6 @@ if __name__ == "__main__":
     #  cross validate
     #########################################################################
 
-    taus =  [1e-2, 1e-4, 1e-6, 1e-8]
-    n_partitions = 4
+    taus = [0.03]
+    n_partitions = 10
     evaluate_taus(K, Y, cut, taus, n_partitions=n_partitions, kernel=kernel)

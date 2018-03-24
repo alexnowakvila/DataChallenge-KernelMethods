@@ -55,12 +55,12 @@ def read_data(path_data, dataset=0):
 def normalize(K):
   n = K.shape[0]
   # center
-  IU = np.eye(n) - (1/n)*np.ones((n,n))
-  K = np.dot(np.dot(IU, K), IU)
+  # IU = np.eye(n) - (1/n)*np.ones((n,n))
+  # K = np.dot(np.dot(IU, K), IU)
   # normalize it
-  k = np.expand_dims(1./np.sqrt(np.diag(K)), 1)
-  kkt = np.dot(k, k.T)
-  K = K * kkt
+  # k = np.expand_dims(1./np.sqrt(np.diag(K)), 1)
+  # kkt = np.dot(k, k.T)
+  # K = K * kkt
   return K
 
 def kernel_train_test_split(K, Y, cut, perm=None):
@@ -355,15 +355,15 @@ if __name__ == "__main__":
   #  Create Mismatch Kernel
   #############################################################################
   
-  k = 8
-  m = 1
+  k = 1
+  m = 0
   kernel = KernelMismatch(k=k, m=m)
   dataset = 0
   path_save_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
                           "Data/dataset_{}/MismKernel_k{}_m{}"
                           .format(dataset, k, m))
-  Xtr = Dataset0["Xtr"][:10]
-  Xte = Dataset0["Xte"][:10]
+  Xtr = Dataset0["Xtr"]
+  Xte = Dataset0["Xte"]
   # kernel2 = KernelSpectrum(k=k)
   # x1, x2 = Xtr[0][:10], Xtr[1][:10]
   # x1 = ['C', 'G', 'G']
@@ -372,10 +372,10 @@ if __name__ == "__main__":
   # print(a)
   # b = kernel2.kernel(x1, x2)
   # print(b)
-  kernel.compute_I()
+  # kernel.compute_I()
   pdb.set_trace()
   Ktr = kernel.kernel_matrix(Xtr)
   Kte = kernel.kernel_matrix(Xte)
-  # np.savez(path_save_kernel_mat, Ktr=Ktr, Kte=Kte)
+  np.savez(path_save_kernel_mat, Ktr=Ktr, Kte=Kte)
   print("Saved!")
   pdb.set_trace()

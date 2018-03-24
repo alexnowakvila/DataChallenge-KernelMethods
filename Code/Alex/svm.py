@@ -207,6 +207,7 @@ class kernel_SVM(QP_solver):
     self.y = y
     self.dual = dual
     self.K = K
+    self.alpha = -1
     mu = 3.
     tol = 1e-1
     LS = True
@@ -270,17 +271,25 @@ class kernel_SVM(QP_solver):
     elif self.dual:
       lambd = x_sol
       alpha = lambd * self.y  # pointwise product
-    acc = self.compute_accuracy(self.K, self.y, alpha)
+    self.alpha = alpha  # update alpha
+    acc = self.compute_accuracy(self.K, self.y)
     return x_sol, alpha, acc
 
-  def compute_accuracy(self, K, y, alpha):
+  def compute_accuracy(self, K, y):
     # K is a (ntr x nte) matrix
-    y_pred = np.dot(np.expand_dims(alpha, 0), K).T
+    y_pred = np.dot(np.expand_dims(self.alpha, 0), K).T
     y_pred = y_pred[:, 0]
     # y_pred = self.Kernel.predict(self.X, X, alpha)
     correct = ((y * y_pred) >= 0)
     acc = np.mean(correct)
     return acc
+
+  def predict(self, K):
+    # K is a (ntr x nte) matrix
+    y_pred = np.dot(np.expand_dims(self.alpha, 0), K).T
+    y_pred = y_pred[:, 0]
+    prediction = (y_pred >= 0)
+    return prediction
 
 if __name__ == '__main__':
   path = '/home/alexnowak/Documents/MVA/ConvexOptimization/CO_HWK3/Data/'
