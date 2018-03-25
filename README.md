@@ -26,3 +26,4 @@ On the other hand, you are welcome to use general purpose libraries, such as lib
 
 ## References
 - [Efficient Approximation Algorithms for String Kernel Based Sequence Classification](https://papers.nips.cc/paper/7269-efficient-approximation-algorithms-for-strings-kernel-based-sequence-classification.pdf)
+- [Shape Kernel for TFs](https://academic.oup.com/bioinformatics/article/33/19/3003/3852080)
