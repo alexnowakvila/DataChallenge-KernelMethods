@@ -73,7 +73,7 @@ def run_train(K, Y, cut, perm, tau):
 
 if __name__ == "__main__":
   np.random.seed(1)  # set random seed
-  dataset = 0
+  dataset = 2
   # kernel = 'given_features'
   # kernel = 'linear'
   # kernel = 'spectrum'
@@ -103,12 +103,11 @@ if __name__ == "__main__":
   elif kernel == 'mismatch':
     X = Dataset["Xtr"]
     Y = Dataset["Ytr"]
-    ks = [1, 2, 4, 6, 8, 10]
-    ms = [0, 0, 1, 1, 1, 1]
-    # ms = np.zeros((10))
-    # weights = np.ones((10))
-    weights = [.1, .1, .1, .1, 1., .1]
-    weights = np.array(weights)/len(weights)
+    ks = [1, 2, 4, 6, 8, 10, 12]
+    ms = [0, 0, 1, 1, 1, 1, 6]
+    # weights = [.1, .1] #, .1, .1, 1., .1, .0000000] #, .1, .1] #, .1]
+    # weights = np.array(weights)/len(weights)
+    weights = []
     for i, par in enumerate(zip(ks, ms, weights)):
       print(par)
       if submit:
@@ -123,9 +122,10 @@ if __name__ == "__main__":
         K = K + par[2] * np.load(path_load_kernel_mat)["Ktr"]
       else:
         K = par[2] * np.load(path_load_kernel_mat)["Ktr"]
+      # pdb.set_trace()
     # add shape kernel
-    weight_shape = .0001
-    # weight_shape = .000001
+    # weight_shape = .000
+    weight_shape = 7
     if submit:
       path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
                               "Data/dataset_{}/ShapeKernel_all.npz"
@@ -134,7 +134,7 @@ if __name__ == "__main__":
       path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
                               "Data/dataset_{}/ShapeKernel.npz"
                               .format(dataset))
-    K = K + weight_shape * np.load(path_load_kernel_mat)["Ktr"]
+    K =  weight_shape * np.load(path_load_kernel_mat)["Ktr"]
   else:
     raise ValueError("Kernel {} not implemented".format(kernel))
   # normalize
@@ -173,6 +173,6 @@ if __name__ == "__main__":
     #  cross validate
     #########################################################################
 
-    taus = [0.03]
+    taus = [0.4, 0.03, 0.02]
     n_partitions = 10
     evaluate_taus(K, Y, cut, taus, n_partitions=n_partitions, kernel=kernel)

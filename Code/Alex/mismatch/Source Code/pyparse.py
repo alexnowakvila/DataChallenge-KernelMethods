@@ -5,13 +5,13 @@ import numpy as np
 import pdb
 
 Datasets = [0, 1, 2]
-# run = "training"
-run = "submission"
-k = 2
-m = 1
+run = "training"
+# run = "submission"
+k = 15
+m = 6
 # b = 400
 # sigma = 0.2
-for k in [4, 6, 8, 10]:
+for k in [12]:
   for dataset in Datasets:
     print("\nCREATING {} DATASET {} FOR K = {} AND M = {}\n"
           .format(run, dataset, k, m))
