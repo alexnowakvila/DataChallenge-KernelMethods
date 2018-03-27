@@ -107,7 +107,7 @@ if __name__ == "__main__":
     ms = [0, 0, 1, 1, 1, 1, 6]
     # weights = [.1, .1] #, .1, .1, 1., .1, .0000000] #, .1, .1] #, .1]
     # weights = np.array(weights)/len(weights)
-    weights = []
+    weights = [.1, .1, .1, .1, 1., .1]
     for i, par in enumerate(zip(ks, ms, weights)):
       print(par)
       if submit:
@@ -122,10 +122,8 @@ if __name__ == "__main__":
         K = K + par[2] * np.load(path_load_kernel_mat)["Ktr"]
       else:
         K = par[2] * np.load(path_load_kernel_mat)["Ktr"]
-      # pdb.set_trace()
     # add shape kernel
-    # weight_shape = .000
-    weight_shape = 7
+    weight_shape = 0.
     if submit:
       path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
                               "Data/dataset_{}/ShapeKernel_all.npz"
@@ -134,7 +132,17 @@ if __name__ == "__main__":
       path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
                               "Data/dataset_{}/ShapeKernel.npz"
                               .format(dataset))
-    K =  weight_shape * np.load(path_load_kernel_mat)["Ktr"]
+    K = K + weight_shape * np.load(path_load_kernel_mat)["Ktr"]
+    path_load_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
+                              "Data/dataset_{}/SubsKernel.npz"
+                              .format(dataset))
+    # add substring kernel
+    weight_subs = 0.
+    Ksubs =  np.load(path_load_kernel_mat)["Ktr"]
+    # ksubs = np.expand_dims(np.sqrt(np.diag(Ksubs)), 1)
+    # kktsubs = np.dot(ksubs, ksubs.T)
+    # Ksubs = Ksubs * kktsubs
+    K = K + weight_subs * Ksubs
   else:
     raise ValueError("Kernel {} not implemented".format(kernel))
   # normalize
@@ -173,6 +181,6 @@ if __name__ == "__main__":
     #  cross validate
     #########################################################################
 
-    taus = [0.4, 0.03, 0.02]
+    taus = [.5]
     n_partitions = 10
     evaluate_taus(K, Y, cut, taus, n_partitions=n_partitions, kernel=kernel)

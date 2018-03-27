@@ -68,7 +68,6 @@ def K(s, t, gamma, N):
 						sum_gamma += grid[i-1, n-1, N-1] * (gamma**2)
 
 				grid_K[i, j] = grid_K[i-1, j] + sum_gamma
-
 	
 	return grid_K[S-1, T-1]  
 
@@ -111,8 +110,7 @@ def gram_matrix(X, substrings, l, k):
 			K_matrix[j, i] = K_matrix[i, j]
 	
 	print('Gram matrix computed in {} min'.format((time.time() - start)/float(60)))
-	
-	return K_matrix
+	return normalize(K_matrix)
 
 
 
@@ -139,16 +137,14 @@ if __name__ == "__main__":
 		for i2 in alphabet:
 			for i3 in alphabet:
 				for i4 in alphabet:
-					for i5 in alphabet:
-						for i6 in alphabet:
-							if i1+i2+i3+i4+i5+i6 not in substrings:
-								substrings.append(i1+i2+i3+i4 +i5+i6)
+					if i1+i2+i3+i4 not in substrings:
+						substrings.append(i1+i2+i3+i4)
 
 
 
 
-	Xtr = Dataset0["Xtr_mat50"][:2000]
-	Xte = Dataset0["Xtr_mat50"][:2000]
+	Xtr = Dataset0["Xtr"][:10]
+	Xte = Dataset0["Xte"][:10]
 
 	Ktr = gram_matrix(Xtr, substrings, gamma, k)
 	Ktr = normalize(Ktr)
