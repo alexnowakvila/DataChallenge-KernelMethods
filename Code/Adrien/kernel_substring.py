@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import os
 
 import sys
 sys.path.insert(0, '/home/alexnowak/DataChallenge-KernelMethods/Code/Alex/')
@@ -113,6 +114,28 @@ def gram_matrix(X, substrings, l, k):
 	return normalize(K_matrix)
 
 
+def compute_substrings(alphabet, k, substrings=[]):
+	"""
+	alphabet ex: ['A', 'C', 'T', 'G']
+	k: len of target substrings
+	substrings: empty string at first iteration, returned full
+	"""
+	
+	if k == 0:
+		return substrings
+	
+	elif len(substrings) == 0:
+		return compute_substrings(alphabet, k-1, alphabet)
+		
+	else:
+		new_list = []
+		for a in alphabet:
+			for x in substrings:
+				
+				new_list.append(x+a)
+		
+		return compute_substrings(alphabet, k-1, new_list)
+
 
 if __name__ == "__main__":
 	path_data = ('/home/alexnowak/DataChallenge-KernelMethods/Data/')
@@ -124,28 +147,18 @@ if __name__ == "__main__":
 	#  Create Substring Kernel
 	#############################################################################
 
-	dataset = 0
-	k = 6
-	gamma = 0.8
-	path_save_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/"
-						  "Data/dataset_{}/SubsKernel".format(dataset))
+	for num in [0, 1, 2]:
+		k = 4
+		gamma = 0.8
+		path_save_kernel_mat = ("/home/adrien/MVA/KERNEL/results/dataset_{}_k{}/SubsKernel".format(num, k))
+		os.mkdir(os.path.dirname(path_save_kernel_mat))
+		alphabet = ['A', 'C', 'T', 'G']
+		substrings = compute_substrings(alphabet, k)
 
-	alphabet = ['A', 'C', 'T', 'G']
-	substrings = []
+	Dataset = read_data(path_data, dataset=num)
 
-	for i1 in alphabet:
-		for i2 in alphabet:
-			for i3 in alphabet:
-				for i4 in alphabet:
-					if i1+i2+i3+i4 not in substrings:
-						substrings.append(i1+i2+i3+i4)
-
-
-
-
-	Xtr = Dataset0["Xtr"][:10]
-	Xte = Dataset0["Xte"][:10]
-
+	Xtr = Dataset["Xtr"]
+	Xte = Dataset["Xte"]
 	Ktr = gram_matrix(Xtr, substrings, gamma, k)
 	Ktr = normalize(Ktr)
 	Kte = gram_matrix(Xte, substrings, gamma, k)
