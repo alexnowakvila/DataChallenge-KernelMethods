@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import os
+import pdb
 
 import sys
 sys.path.insert(0, '/home/adrien/MVA/KERNEL/DataChallenge-KernelMethods/Code/Alex/')
@@ -164,8 +165,9 @@ if __name__ == "__main__":
 		Xtr = Dataset["Xtr"]
 		Xte = Dataset["Xte"]
 
-		Ktr = gram_matrix(Xtr, substrings, gamma, k)
-		Kte = gram_matrix(Xte, substrings, gamma, k)
+		X = Xtr + Xte
 
-		np.savez(path_save_kernel_mat, Ktr=Ktr, Kte=Kte)
+		Ktr = gram_matrix(X, substrings, gamma, k)
+
+		np.savez(path_save_kernel_mat, Ktr=Ktr)
 		print("Saved!")
