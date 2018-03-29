@@ -147,21 +147,18 @@ if __name__ == "__main__":
 	#  Create Substring Kernel
 	#############################################################################
 
-	for num in [0, 1, 2]:
-		k = 4
-		gamma = 0.8
-		path_save_kernel_mat = ("/home/adrien/MVA/KERNEL/results/dataset_{}_k{}/SubsKernel".format(num, k))
-		os.mkdir(os.path.dirname(path_save_kernel_mat))
-		alphabet = ['A', 'C', 'T', 'G']
-		substrings = compute_substrings(alphabet, k)
-
+	num = 0
+	k = 5
+	gamma = 0.8
+	path_save_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/Data/"
+													"dataset_{}/SubsKernel_{}".format(num, k))
+	alphabet = ['A', 'C', 'T', 'G']
+	substrings = compute_substrings(alphabet, k)
 	Dataset = read_data(path_data, dataset=num)
 
 	Xtr = Dataset["Xtr"]
 	Xte = Dataset["Xte"]
-	Ktr = gram_matrix(Xtr, substrings, gamma, k)
-	Ktr = normalize(Ktr)
-	Kte = gram_matrix(Xte, substrings, gamma, k)
-	Kte = normalize(Kte)
-	np.savez(path_save_kernel_mat, Ktr=Ktr, Kte=Kte)
+	X = Xtr + Xte
+	Ktr = gram_matrix(X, substrings, gamma, k)
+	np.savez(path_save_kernel_mat, Ktr=Ktr)
 	print("Saved!")
