@@ -35,16 +35,16 @@ Make sure to change the paths corresponding to read/write correctly the kernels.
 ### Build Kernels from sequences
 Feel free to play with the parameters inside these files.
 #### Our implementation 
-- To create the kernel matrix for the mismatch kernel using a depth graph search run `python Code/Alex/utils.py`
+- To create the kernel matrix for the mismatch kernel using a depth graph search run `python Code/utils.py`
 - To create the kernel matrix for the substring kernel by computing the features (relatively efficient) run
-`python Code/Adrien/kernel_substring.py`
+`python Code/kernel_substring.py`
 #### External (non-ML) libraries
 - To create the kernel matrix for the mismatch kernel using the approximative montecarlo based method run
-`python Code/Alex/mismatch/pyparse.py`
+`python Code/mismatch/pyparse.py`
 - To create the kernel matrix for the shape kernel (using the R code) run
-`python Code/Alex/tofasta.py`
+`python Code/tofasta.py`
 ### Run experiments
-`python Code/Alex/main.py`
+`python Code/main.py`
 
 ## References
 - [Efficient Approximation Algorithms for String Kernel Based Sequence Classification](https://papers.nips.cc/paper/7269-efficient-approximation-algorithms-for-strings-kernel-based-sequence-classification.pdf)
