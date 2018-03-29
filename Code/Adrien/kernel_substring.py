@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import os
+import pdb
 
 import sys
 sys.path.insert(0, '/home/alexnowak/DataChallenge-KernelMethods/Code/Alex/')
@@ -147,14 +148,14 @@ if __name__ == "__main__":
 	#  Create Substring Kernel
 	#############################################################################
 
-	num = 0
+	dataset = 0
 	k = 5
 	gamma = 0.8
 	path_save_kernel_mat = ("/home/alexnowak/DataChallenge-KernelMethods/Data/"
 													"dataset_{}/SubsKernel_{}".format(num, k))
 	alphabet = ['A', 'C', 'T', 'G']
 	substrings = compute_substrings(alphabet, k)
-	Dataset = read_data(path_data, dataset=num)
+	Dataset = read_data(path_data, dataset=dataset)
 
 	Xtr = Dataset["Xtr"]
 	Xte = Dataset["Xte"]
