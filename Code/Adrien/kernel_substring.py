@@ -4,7 +4,7 @@ import os
 import pdb
 
 import sys
-sys.path.insert(0, '/home/adrien/MVA/KERNEL/DataChallenge-KernelMethods/Code/Alex/')
+sys.path.insert(0, '/home/alexnowak/DataChallenge-KernelMethods/Code/Alex/')
 
 from utils import *
 from svm import *
@@ -112,8 +112,6 @@ def gram_matrix(X, substrings, l, k):
 			K_matrix[j, i] = K_matrix[i, j]
 	
 	print('Gram matrix computed in {} min'.format((time.time() - start)/float(60)))
-	
-
 	return normalize(K_matrix)
 
 
@@ -141,7 +139,7 @@ def compute_substrings(alphabet, k, substrings=[]):
 
 
 if __name__ == "__main__":
-	path_data = ('/home/adrien/MVA/KERNEL/DataChallenge-KernelMethods/Data/')
+	path_data = ('/home/alexnowak/DataChallenge-KernelMethods/Data/')
 	Dataset0 = read_data(path_data, dataset=0)
 	Dataset1 = read_data(path_data, dataset=1)
 	Dataset2 = read_data(path_data, dataset=2)
@@ -151,12 +149,10 @@ if __name__ == "__main__":
 	#############################################################################
 
 	for num in [0, 1, 2]:
-
 		k = 4
 		gamma = 0.8
 		path_save_kernel_mat = ("/home/adrien/MVA/KERNEL/results/dataset_{}_k{}/SubsKernel".format(num, k))
 		os.mkdir(os.path.dirname(path_save_kernel_mat))
-
 		alphabet = ['A', 'C', 'T', 'G']
 		substrings = compute_substrings(alphabet, k)
 
@@ -171,3 +167,4 @@ if __name__ == "__main__":
 
 		np.savez(path_save_kernel_mat, Ktr=Ktr)
 		print("Saved!")
+

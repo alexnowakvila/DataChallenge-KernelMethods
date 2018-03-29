@@ -19,6 +19,53 @@ class Kernel_Substring():
     else:
       self.K = None
 
+  def KK(self, s, t, gamma, N):
+    if N < 2:
+      print('works only if N > 1')
+      return False
+    S = len(s)
+    T = len(t)
+    grid = np.ones((S, T, N), dtype=np.float64)
+    grid_K = np.zeros((S, T), dtype=np.float64)
+    #kernel = 0
+    for p in range(1, N):
+      for i in range(S):
+        for j in range(T):   
+          if min(i+1, j+1) < p:
+            grid[i, j, p] = 0
+          elif p == 1 and i == 0:
+            sum_gamma = 0
+            for n, a in enumerate(t[0:j+1]):
+              if a == s[0]:
+                sum_gamma += gamma**(j+1-n)
+            grid[i, j, p] = gamma * sum_gamma
+          else:
+            sum_gamma = 0
+            for n, a in enumerate(t[0:j+1]):
+              if a == s[i]:
+                sum_gamma += grid[i-1, n-1, p-1] * (gamma**(j-n+2))
+            grid[i, j, p] = gamma * grid[i-1, j, p] + sum_gamma              
+    """                    
+    for i in range(N-1, S):
+      sum_K = 0
+      for n, a in enumerate(t):
+        sum_K += grid[i-1, n-1, N-1]  
+      kernel = kernel + sum_K * (gamma**2) 
+      print(kernel)
+    """     
+    for i in range(S):
+      for j in range(T):              
+        if min(i+1, j+1) < N:
+          continue
+        else:
+          sum_gamma = 0
+          for n, a in enumerate(t[0:j+1]):
+            if a == s[i]:
+              sum_gamma += grid[i-1, n-1, N-1] * (gamma**2)
+          grid_K[i, j] = grid_K[i-1, j] + sum_gamma
+    print('here')
+    return grid_K[S-1, T-1]
+
   def substring_kernel(self, x, y, gamma, k):
     """
     x, y: input strings
@@ -66,7 +113,6 @@ class Kernel_Substring():
                     
                     grid_B[i, j, p] = gamma * grid_B[i, j-1, p] + sum_B
                     grid_K[i, j, p] = grid_K[i, j-1, p] + (gamma ** 2) * sum_K
-    
     return grid_K[M-1, N-1, k]
 
   def kernel_matrix(self, X):
@@ -79,11 +125,13 @@ class Kernel_Substring():
       for i in tqdm(range(n), desc="Computing Spectrum Kernel Matrix"):
 
         # diagonal
-        K[i, i] = self.substring_kernel(X[i], X[i], self.gamma, self.k)
+        # K[i, i] = self.substring_kernel(X[i], X[i], self.gamma, self.k)
+        K[i, i] = self.KK(X[i], X[i], self.gamma, self.k)
 
         # upper diagonal
         for j in range(i+1, n):
-            K[i, j] = self.substring_kernel(X[i], X[j], self.gamma, self.k)
+            # K[i, j] = self.substring_kernel(X[i], X[j], self.gamma, self.k)
+            K[i, j] = self.KK(X[i], X[j], self.gamma, self.k)
             K[j, i] = K[i, j]
 
       self.K = K

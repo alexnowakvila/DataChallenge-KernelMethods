@@ -19,9 +19,10 @@ featureNames <- c()
 ###############################################################################
 #  n-shape
 ###############################################################################
-max_n <- 10
 
-for (i in 1:max_n)
+Ns <- c(6, 8, 10, 15)
+
+for (i in Ns)
 {
   featureNames <- append(featureNames, sprintf("%d-shape", i))
 }
@@ -30,7 +31,7 @@ for (i in 1:max_n)
 #  n-MGW
 ###############################################################################
 
-for (i in 1:max_n)
+for (i in Ns)
 {
   featureNames <- append(featureNames, sprintf("%d-shape", i))
 }
@@ -39,7 +40,7 @@ for (i in 1:max_n)
 #  n-ProT
 ###############################################################################
 
-for (i in 1:max_n)
+for (i in Ns)
 {
   featureNames <- append(featureNames, sprintf("%d-shape", i))
 }
@@ -48,7 +49,7 @@ for (i in 1:max_n)
 #  n-Roll
 ###############################################################################
 
-for (i in 1:max_n)
+for (i in Ns)
 {
   featureNames <- append(featureNames, sprintf("%d-shape", i))
 }
@@ -57,7 +58,7 @@ for (i in 1:max_n)
 #  n-HelT
 ###############################################################################
 
-for (i in 1:max_n)
+for (i in Ns)
 {
   featureNames <- append(featureNames, sprintf("%d-shape", i))
 }
