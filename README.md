@@ -24,6 +24,28 @@ Two days after the deadline of the data challenge, you will have to provide
 
 On the other hand, you are welcome to use general purpose libraries, such as library for linear algebra (e.g., svd, eigenvalue decompositions), optimization libraries (e.g., for solving linear or quadratic programs)
 
+## Run the code
+Make sure to change the paths corresponding to read/write correctly the kernels.
+### Requirements
+- Python 3.6.2
+- Numpy
+- matplotlib
+- cvxopt
+
+### Build Kernels from sequences
+Feel free to play with the parameters inside these files.
+#### Our implementation 
+- To create the kernel matrix for the mismatch kernel using a depth graph search run `python Code/Alex/utils.py`
+- To create the kernel matrix for the substring kernel by computing the features (relatively efficient) run
+`python Code/Adrien/kernel_substring.py`
+#### External (non-ML) libraries
+- To create the kernel matrix for the mismatch kernel using the approximative montecarlo based method run
+`python Code/Alex/mismatch/pyparse.py`
+- To create the kernel matrix for the shape kernel (using the R code) run
+`python Code/Alex/tofasta.py`
+### Run experiments
+`python Code/Alex/main.py`
+
 ## References
 - [Efficient Approximation Algorithms for String Kernel Based Sequence Classification](https://papers.nips.cc/paper/7269-efficient-approximation-algorithms-for-strings-kernel-based-sequence-classification.pdf)
 - [Shape Kernel for TFs](https://academic.oup.com/bioinformatics/article/33/19/3003/3852080)
